@@ -1,0 +1,57 @@
+<div class="detail-container">
+  <a href="/products" class="btn back-btn">← Volver</a>
+
+  <div class="detail-card">
+    {{#if product.thumbnails.[0]}}
+    <img src="{{product.thumbnails.[0]}}" alt="{{product.title}}" class="detail-img" />
+    {{else}}
+    <div class="detail-img-placeholder">Sin imagen</div>
+    {{/if}}
+
+    <div class="detail-info">
+      <span class="category-badge">{{product.category}}</span>
+      <h1>{{product.title}}</h1>
+      <p class="detail-description">{{product.description}}</p>
+      <p><strong>Código:</strong> {{product.code}}</p>
+      <p class="detail-price">${{product.price}}</p>
+      <p class="{{#if product.stock}}in-stock{{else}}out-stock{{/if}}">
+        {{#if product.stock}}✅ En stock ({{product.stock}} unidades){{else}}❌ Sin stock{{/if}}
+      </p>
+      <p><strong>Estado:</strong> {{#if product.status}}Activo{{else}}Inactivo{{/if}}</p>
+
+      <div class="add-to-cart">
+        <input type="text" id="cartId" placeholder="ID del carrito" />
+        <button onclick="addToCart('{{product._id}}')" class="btn btn-primary">
+          Agregar al carrito
+        </button>
+        <p id="cart-msg" class="cart-msg"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function addToCart(productId) {
+  const cartId = document.getElementById('cartId').value.trim();
+  const msg = document.getElementById('cart-msg');
+  if (!cartId) {
+    msg.textContent = 'Por favor ingresá el ID del carrito';
+    msg.className = 'cart-msg error';
+    return;
+  }
+  try {
+    const res = await fetch(`/api/carts/${cartId}/products/${productId}`, { method: 'POST' });
+    const data = await res.json();
+    if (data.status === 'success') {
+      msg.textContent = '✅ Producto agregado al carrito';
+      msg.className = 'cart-msg success';
+    } else {
+      msg.textContent = '❌ ' + data.message;
+      msg.className = 'cart-msg error';
+    }
+  } catch {
+    msg.textContent = '❌ Error al agregar el producto';
+    msg.className = 'cart-msg error';
+  }
+}
+</script>

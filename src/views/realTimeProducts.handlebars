@@ -1,0 +1,129 @@
+<div class="realtime-container">
+  <h1>⚡ Productos en Tiempo Real</h1>
+  <p class="subtitle">Esta vista se actualiza automáticamente con WebSockets</p>
+
+  <div class="form-section">
+    <h2>Agregar producto</h2>
+    <form id="productForm">
+      <div class="form-grid">
+        <input type="text" id="title" placeholder="Título *" required />
+        <input type="text" id="description" placeholder="Descripción *" required />
+        <input type="text" id="code" placeholder="Código único *" required />
+        <input type="number" id="price" placeholder="Precio *" required />
+        <input type="number" id="stock" placeholder="Stock *" required />
+        <input type="text" id="category" placeholder="Categoría *" required />
+        <input type="text" id="thumbnails" placeholder="URL de imagen (opcional)" />
+        <select id="status">
+          <option value="true">Activo</option>
+          <option value="false">Inactivo</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Agregar producto</button>
+      <p id="form-msg" class="cart-msg"></p>
+    </form>
+  </div>
+
+  <div class="products-section">
+    <h2>Lista de productos</h2>
+    <div id="productsList" class="products-grid">
+      {{#each products}}
+      <div class="product-card" id="prod-{{_id}}">
+        <div class="product-info">
+          <span class="category-badge">{{category}}</span>
+          <h3>{{title}}</h3>
+          <p class="description">{{description}}</p>
+          <div class="product-footer">
+            <span class="price">${{price}}</span>
+            <span class="stock">Stock: {{stock}}</span>
+          </div>
+          <button onclick="deleteProduct('{{_id}}')" class="btn btn-danger btn-sm">Eliminar</button>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+
+socket.on('productCreated', (product) => {
+  const list = document.getElementById('productsList');
+  const card = document.createElement('div');
+  card.className = 'product-card';
+  card.id = `prod-${product._id}`;
+  card.innerHTML = `
+    <div class="product-info">
+      <span class="category-badge">${product.category}</span>
+      <h3>${product.title}</h3>
+      <p class="description">${product.description}</p>
+      <div class="product-footer">
+        <span class="price">$${product.price}</span>
+        <span class="stock">Stock: ${product.stock}</span>
+      </div>
+      <button onclick="deleteProduct('${product._id}')" class="btn btn-danger btn-sm">Eliminar</button>
+    </div>`;
+  list.prepend(card);
+  showMsg('✅ Producto agregado', 'success');
+});
+
+socket.on('productDeleted', (id) => {
+  const card = document.getElementById(`prod-${id}`);
+  if (card) card.remove();
+});
+
+socket.on('productUpdated', (product) => {
+  const card = document.getElementById(`prod-${product._id}`);
+  if (card) {
+    card.querySelector('h3').textContent = product.title;
+    card.querySelector('.price').textContent = `$${product.price}`;
+    card.querySelector('.stock').textContent = `Stock: ${product.stock}`;
+  }
+});
+
+document.getElementById('productForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const body = {
+    title: document.getElementById('title').value,
+    description: document.getElementById('description').value,
+    code: document.getElementById('code').value,
+    price: parseFloat(document.getElementById('price').value),
+    stock: parseInt(document.getElementById('stock').value),
+    category: document.getElementById('category').value,
+    status: document.getElementById('status').value === 'true',
+    thumbnails: document.getElementById('thumbnails').value
+      ? [document.getElementById('thumbnails').value]
+      : []
+  };
+  try {
+    const res = await fetch('/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+      e.target.reset();
+      showMsg('✅ Producto creado', 'success');
+    } else {
+      showMsg('❌ ' + data.message, 'error');
+    }
+  } catch {
+    showMsg('❌ Error al crear el producto', 'error');
+  }
+});
+
+async function deleteProduct(id) {
+  const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.status !== 'success') showMsg('❌ ' + data.message, 'error');
+}
+
+function showMsg(text, type) {
+  const el = document.getElementById('form-msg');
+  el.textContent = text;
+  el.className = `cart-msg ${type}`;
+  setTimeout(() => (el.textContent = ''), 3000);
+}
+</script>

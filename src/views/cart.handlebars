@@ -1,0 +1,50 @@
+<div class="cart-container">
+  <h1>Carrito de Compras</h1>
+  <p class="cart-id">ID: <code>{{cart._id}}</code></p>
+
+  {{#if cart.products.length}}
+  <table class="cart-table">
+    <thead>
+      <tr>
+        <th>Producto</th>
+        <th>Precio</th>
+        <th>Cantidad</th>
+        <th>Subtotal</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each cart.products}}
+      <tr>
+        <td>{{product.title}}</td>
+        <td>${{product.price}}</td>
+        <td>{{quantity}}</td>
+        <td>${{multiply product.price quantity}}</td>
+        <td>
+          <button onclick="removeProduct('{{../cart._id}}', '{{product._id}}')" class="btn btn-danger">
+            Eliminar
+          </button>
+        </td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  <div class="cart-total">
+    <strong>Total estimado: ${{total}}</strong>
+  </div>
+  <button onclick="clearCart('{{cart._id}}')" class="btn btn-danger">Vaciar carrito</button>
+  {{else}}
+  <p class="empty-cart">El carrito está vacío.</p>
+  {{/if}}
+</div>
+
+<script>
+async function removeProduct(cartId, productId) {
+  const res = await fetch(`/api/carts/${cartId}/products/${productId}`, { method: 'DELETE' });
+  if ((await res.json()).status === 'success') location.reload();
+}
+async function clearCart(cartId) {
+  const res = await fetch(`/api/carts/${cartId}`, { method: 'DELETE' });
+  if ((await res.json()).status === 'success') location.reload();
+}
+</script>
